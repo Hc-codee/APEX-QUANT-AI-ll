@@ -10,6 +10,7 @@ import { BacktestView } from './components/BacktestView';
 import { RiskCalculator } from './components/RiskCalculator';
 import { DiagnosticsView } from './components/DiagnosticsView';
 import { AuditView } from './components/AuditView';
+import { SentimentWidget } from './components/SentimentWidget';
 
 import {
   AssetSymbolKey,
@@ -19,6 +20,7 @@ import {
   Position,
   SignalOutcome,
   WorkerStatusJson,
+  SentimentData,
 } from './types';
 import {
   ASSET_CONFIGS,
@@ -33,6 +35,12 @@ import {
   calculatePositionSize,
   validateCandles,
 } from './utils/quant_engine';
+import {
+  getInitialSentiment,
+  tickDriftSentiment,
+  validateSignalWithSentiment,
+  calculateSentimentComposite,
+} from './utils/sentiment';
 
 export default function App() {
   const [mode, setMode] = useState<TradingMode>('PAPER');
@@ -42,6 +50,11 @@ export default function App() {
   const [positions, setPositions] = useState<Position[]>(INITIAL_POSITIONS);
 
   const [candles, setCandles] = useState<CandleData[]>(() => generateCandles('XAUUSD', 40));
+
+  // Market Sentiment state
+  const [sentiment, setSentiment] = useState<SentimentData>(() => getInitialSentiment('XAUUSD'));
+  const [isSentimentStreaming, setIsSentimentStreaming] = useState<boolean>(true);
+  const [isSentimentCollapsed, setIsSentimentCollapsed] = useState<boolean>(false);
 
   // Current market tick state
   const [tick, setTick] = useState<MarketTick>(() => {
@@ -62,7 +75,7 @@ export default function App() {
     };
   });
 
-  // When selected asset changes, regenerate candles and reset tick
+  // When selected asset changes, regenerate candles, reset tick, and reset sentiment
   useEffect(() => {
     const newCandles = generateCandles(selectedAsset, 40);
     setCandles(newCandles);
@@ -83,12 +96,23 @@ export default function App() {
       digits: cfg.digits,
     });
 
+    setSentiment(getInitialSentiment(selectedAsset));
+
     setStatus((prev) => ({
       ...prev,
       selected_symbol: selectedAsset,
       broker_symbol_actual: cfg.brokerSymbolDefault,
     }));
   }, [selectedAsset]);
+
+  // Live sentiment tick generator (updates every 2.0s when streaming is active)
+  useEffect(() => {
+    if (!isSentimentStreaming) return;
+    const interval = setInterval(() => {
+      setSentiment((prev) => tickDriftSentiment(prev));
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isSentimentStreaming]);
 
   // Live tick simulator (updates every 1.5s in Paper or Backtest mode)
   useEffect(() => {
@@ -399,6 +423,43 @@ export default function App() {
     }));
   };
 
+  const handleSimulateCrowdSqueeze = () => {
+    setSentiment((prev) => {
+      const updated = prev.metrics.map((m) => {
+        if (m.id.includes('retail') || m.id.includes('fear') || m.id.includes('funding')) {
+          return {
+            ...m,
+            value: 88,
+            displayValue: '88% Long (Extreme Squeeze Risk)',
+            sentiment: 'BULLISH' as const,
+          };
+        }
+        return m;
+      });
+      const comp = calculateSentimentComposite(updated);
+      return {
+        ...prev,
+        compositeScore: comp.compositeScore,
+        label: comp.label,
+        crowdRisk: true,
+        crowdRiskDescription: 'Crowded Long: Retail traders clustered at 88% Long (Contrarian Long Squeeze Risk)',
+        lastUpdated: Date.now(),
+        metrics: updated,
+      };
+    });
+  };
+
+  const handleResetSentiment = () => {
+    setSentiment(getInitialSentiment(selectedAsset));
+  };
+
+  const sentimentValidation = validateSignalWithSentiment(
+    signalOutcome.decision,
+    sentiment.compositeScore,
+    sentiment.crowdRisk,
+    sentiment.crowdRiskDescription
+  );
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950">
       {/* Top Telemetry & Navigation */}
@@ -436,29 +497,50 @@ export default function App() {
               ))}
             </div>
 
-            {/* Price Chart */}
-            <PriceChart
-              candles={candles}
-              tick={tick}
-              slPrice={signalOutcome.suggestedOrder?.sl}
-              tpPrice={signalOutcome.suggestedOrder?.tp}
-              entryPrice={signalOutcome.suggestedOrder?.price}
-            />
+            {/* Responsive 2-Column Cockpit Layout (Chart/Pipeline/Positions + Sentiment Sidebar) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Main Trading Cockpit Area (8 Columns) */}
+              <div className="lg:col-span-8 space-y-6">
+                {/* Price Chart */}
+                <PriceChart
+                  candles={candles}
+                  tick={tick}
+                  slPrice={signalOutcome.suggestedOrder?.sl}
+                  tpPrice={signalOutcome.suggestedOrder?.tp}
+                  entryPrice={signalOutcome.suggestedOrder?.price}
+                />
 
-            {/* 12-Step Signal Decision Engine Visualizer */}
-            <PipelineViewer
-              outcome={signalOutcome}
-              onExecuteManual={signalOutcome.suggestedOrder ? handleExecuteManual : undefined}
-            />
+                {/* 12-Step Signal Decision Engine Visualizer */}
+                <PipelineViewer
+                  outcome={signalOutcome}
+                  onExecuteManual={signalOutcome.suggestedOrder ? handleExecuteManual : undefined}
+                />
 
-            {/* Open Managed Positions */}
-            <PositionsTable
-              positions={positions}
-              onClosePosition={handleClosePosition}
-              onCloseAll={handleCloseAll}
-              onToggleTrailing={handleToggleTrailing}
-              onToggleBreakeven={handleToggleBreakeven}
-            />
+                {/* Open Managed Positions */}
+                <PositionsTable
+                  positions={positions}
+                  onClosePosition={handleClosePosition}
+                  onCloseAll={handleCloseAll}
+                  onToggleTrailing={handleToggleTrailing}
+                  onToggleBreakeven={handleToggleBreakeven}
+                />
+              </div>
+
+              {/* Sidebar Widget Column (4 Columns) */}
+              <div className="lg:col-span-4 space-y-6">
+                <SentimentWidget
+                  sentiment={sentiment}
+                  validation={sentimentValidation}
+                  tradingDecision={signalOutcome.decision}
+                  onSimulateCrowdSqueeze={handleSimulateCrowdSqueeze}
+                  onResetSentiment={handleResetSentiment}
+                  isStreaming={isSentimentStreaming}
+                  onToggleStreaming={() => setIsSentimentStreaming(!isSentimentStreaming)}
+                  isCollapsed={isSentimentCollapsed}
+                  onToggleCollapse={() => setIsSentimentCollapsed(!isSentimentCollapsed)}
+                />
+              </div>
+            </div>
           </div>
         )}
 

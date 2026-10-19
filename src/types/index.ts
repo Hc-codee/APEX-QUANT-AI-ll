@@ -96,3 +96,31 @@ export interface WorkerStatusJson {
   emergency_halt: boolean;
   decision_reason: string;
 }
+
+export interface SentimentMetric {
+  id: string;
+  name: string;
+  value: number;
+  displayValue: string;
+  unit?: string;
+  sentiment: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  weight: number;
+  description: string;
+}
+
+export interface SentimentData {
+  symbolKey: AssetSymbolKey;
+  compositeScore: number; // 0 to 100
+  label: 'EXTREME_BEARISH' | 'BEARISH' | 'NEUTRAL' | 'BULLISH' | 'EXTREME_BULLISH';
+  crowdRisk: boolean; // true if retail crowd is over-extended (>75% one way)
+  crowdRiskDescription?: string;
+  lastUpdated: number;
+  metrics: SentimentMetric[];
+}
+
+export interface SentimentValidationResult {
+  status: 'CONFIRMED' | 'CAUTION' | 'CONTRARIAN_WARNING' | 'NEUTRAL';
+  message: string;
+  scoreAdjustment: number;
+  crowdFilterPassed: boolean;
+}
