@@ -1,0 +1,93 @@
+{
+  "system": {
+    "version": "1.0.0",
+    "name": "HC-NEXUS QUANT AI V1.0",
+    "mode": "PAPER",
+    "heartbeat_interval_seconds": 1.0,
+    "log_level": "INFO",
+    "magic_number_base": 881000,
+    "emergency_halt": false
+  },
+  "wine_mt5": {
+    "connection_mode": "DIRECT_OR_IPC_FALLBACK",
+    "wine_prefix": "/home/user/.wine",
+    "terminal_path": "C:\\Program Files\\MetaTrader 5\\terminal64.exe",
+    "wine_python_path": "C:\\users\\user\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
+    "ipc_directory": "/home/user/.wine/drive_c/Program Files/MetaTrader 5/MQL5/Files/hc_nexus",
+    "server": "MetaQuotes-Demo",
+    "timeout_ms": 15000,
+    "stale_tick_seconds_limit": 5.0
+  },
+  "risk_management": {
+    "risk_per_trade_fraction": 0.0025,
+    "max_daily_loss_fraction": 0.01,
+    "max_open_positions": 3,
+    "max_open_positions_per_symbol": 1,
+    "max_portfolio_risk_fraction": 0.0075,
+    "max_spread_pips": {
+      "XAUUSD": 3.5,
+      "BTCUSD": 30.0,
+      "NASDAQ": 2.5
+    },
+    "enforce_margin_check": true,
+    "min_free_margin_ratio": 2.0,
+    "trailing_stop_atr_multiplier": 2.0,
+    "breakeven_atr_multiplier": 1.5,
+    "martingale_allowed": false,
+    "averaging_down_allowed": false
+  },
+  "symbols": {
+    "XAUUSD": {
+      "broker_symbol": "XAUUSD",
+      "aliases": ["GOLD", "XAUUSDm", "XAUUSD."],
+      "asset_class": "COMMODITY",
+      "contract_size": 100.0,
+      "volume_min": 0.01,
+      "volume_max": 20.0,
+      "volume_step": 0.01,
+      "digits": 2,
+      "pip_size": 0.1,
+      "magic_number": 881001,
+      "default_timeframe": "M15",
+      "trading_hours_utc": "00:00-23:00"
+    },
+    "BTCUSD": {
+      "broker_symbol": "BTCUSD",
+      "aliases": ["BTCUSDm", "XBTUSD", "Bitcoin"],
+      "asset_class": "CRYPTO",
+      "contract_size": 1.0,
+      "volume_min": 0.01,
+      "volume_max": 5.0,
+      "volume_step": 0.01,
+      "digits": 2,
+      "pip_size": 1.0,
+      "magic_number": 881002,
+      "default_timeframe": "M15",
+      "trading_hours_utc": "00:00-24:00"
+    },
+    "NASDAQ": {
+      "broker_symbol": "US100",
+      "aliases": ["NAS100", "USTEC", "NDX", "US100.cash", "NAS100m"],
+      "asset_class": "INDEX_CFD",
+      "contract_size": 1.0,
+      "volume_min": 0.1,
+      "volume_max": 50.0,
+      "volume_step": 0.1,
+      "digits": 2,
+      "pip_size": 1.0,
+      "magic_number": 881003,
+      "default_timeframe": "M15",
+      "trading_hours_utc": "13:30-20:00"
+    }
+  },
+  "machine_learning": {
+    "model_type": "CALIBRATED_LOGISTIC_GRADIENT_BOOST",
+    "probability_threshold_buy": 0.62,
+    "probability_threshold_sell": 0.38,
+    "min_calibrated_edge_pips": 1.5,
+    "feature_lookback_bars": 300,
+    "retraining_lookback_days": 90,
+    "promotion_min_sharpe": 1.2,
+    "promotion_max_brier": 0.22
+  }
+}

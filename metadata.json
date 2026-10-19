@@ -1,0 +1,6 @@
+{
+  "name": "HC-NEXUS QUANT AI V1.0",
+  "description": "AI-Assisted Quantitative Algorithmic Trading System for MetaTrader 5 on XAUUSD, BTCUSD, and NASDAQ CFD",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
