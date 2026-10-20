@@ -1,6 +1,6 @@
-# NEXUS-QUANT-AI
+# APEX-QUANT-AI
 
-HC-NEXUS QUANT AI V1.1
+APEX QUANT AI V1.1
 
 A quantitative AI trading and analytics project combining TypeScript, Python, and MQL5 workflows for market research, signal generation, and strategy automation.
 
